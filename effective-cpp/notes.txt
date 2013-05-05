@@ -1,0 +1,10 @@
+--- Introduction
+MAYBE: Use explicit constructors to avoid implicit type conversion  
+
+Default vs copy vs assignment constructors
+Widget w1; //default
+Widget w1(w2); //copy
+Widget w2 = w1; //copy, this is NOT an assignment
+Widget w2;
+w2 = w1; //this is assignment
+
