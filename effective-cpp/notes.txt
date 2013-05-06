@@ -1,3 +1,6 @@
+--- TODO
+- private vs public vs multiple inheritance
+
 --- Introduction
 MAYBE: Use explicit constructors to avoid implicit type conversion  
 
@@ -8,3 +11,54 @@ Widget w2 = w1; //copy, this is NOT an assignment
 Widget w2;
 w2 = w1; //this is assignment
 
+--- Item 2 Use consts, inline and enums over #defines 
+- helps with debugging 
+- allows scoping 
+- only one copy of variable, fn per code 
+
+--- Item 3 Use const whenever possible 
+- use const ref for non-native C types
+- const member fns help convey to user that fn will not modify object
+- use mutable to modify select members (e.g. mutex, logging) in const fns 
+- ALWAYS implement non-const member fn in terms of const member fn 
+A.h
+class A
+{
+   char& getText(size_t position);
+   const char& getText(size_t position) const;
+}
+A.cpp
+char& A::getText(size_t position)
+{
+   const char& temp = static_cast<const A*>(this)->getText;
+   return const_cast<char &>temp;
+}
+
+--- Item 4 Initialize objects before they are used
+- Use initialization list in constructors
+- C++ initializes members in the order they were declared and NOT in the order of the initialization list so keep them both consistent
+
+--- Item 5 Know what functions C++ silently calls
+- default ctor. following only when needed - copy ctor and assignment operator
+- default dtor
+
+--- Item 6 Explicitly disallow the use of compiler generated functions you do not want
+- declare constructors private e.g. boost::noncopyable but do NOT implement them
+
+--- Item 7 IMPORTANT Declare destructors virtual in polymorphic base classes
+- Any base class that contains a single virtual fn should have a virtual destructor
+- This prevents partially destroyed objects
+- Do not blindly declare all destructors virtual as this adds un-necessary overhead
+
+--- Item 8 Never throw exceptions from destructors 
+- This leads to numerous problems, just don't do it
+
+--- Item 9 Never call virtual functions during construction/destruction
+- Intent of virtual fn is to help derived class implement their own version. When constructing object of derived class, base class is constructed first. In the constructor Derived::Derived(), the Base::VirtualFn() will be called which is most probably not the intent. 
+
+--- Item 10 Have assignment operators return a reference to *this 
+Widget& operator=(const Widget& rhs);
+- This allows chaining like x = y = z = "test string";
+- Applies to other assignment operators as well like +=, -=, etc.
+
+--- Item 11 
