@@ -61,4 +61,55 @@ Widget& operator=(const Widget& rhs);
 - This allows chaining like x = y = z = "test string";
 - Applies to other assignment operators as well like +=, -=, etc.
 
---- Item 11 
+--- Item 11 Handle assignment to self in operator=
+Widget& Widget::operator=(const Widget& rhs)
+{
+   if(this == &rhs) return *this;
+   ...
+}
+
+--- Item 12 Copy all parts of an object
+- remember to copy base class parts as well
+
+--- Item 13 Use objects to manage resources
+- when auto_ptr is copied, the copying pointer assumes sole ownership of the resource
+
+--- Item 14 Think carefully about copying behavior in resource-mananging classes
+- Prohibit copying
+- OR use a reference count
+- OR copy the underlying resource (deep copying)
+- OR transfer ownership like auto_ptrs
+
+
+--- Item 15 Provide access to raw resources 
+- simplest: provide get() method
+- provide implicit conversion functions using operator()
+class ObjWrapper
+{
+   operator Obj() const
+   {
+      return o;
+   }
+
+private:
+   Obj o;
+}
+ObjWrapper objW(...);
+FuncThatTakesObj(objW); //objW implicitly converted to type Obj
+- overload the -> and * operator 
+
+--- Item 16 Use same form of new and delete
+- if use new[] remember to use delete[]
+- boost provides scoped_array and scoped_vector to auto manage this
+
+--- Item 17 Store newed objects in smart pointers in standalone statements
+- BAD example
+myFunc(tr1::shared_ptr<Widget> pw, priority());
+Order of execution is not guaranteed, e.g. 
+Widget temp = new Widget;
+priority(); //if this throws an exception, ptr returned from new will be lost 
+shared_ptr<Widget> final(temp);
+- GOOD example
+tr1::shared_ptr<Widget> temp(new Widget);
+myFunc(temp, priority())
+
