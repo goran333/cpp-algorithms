@@ -1,0 +1,5 @@
+A simple implementation of the hashmap functionality in C that supports string (key) and int (value) pairs.
+
+Future/TODOs
+- Use a industry standard hash function like SHA1 instead of writing our own
+- Current implementation does not handle collisions. Replace the array of nodes with an array of linkedlists to handle this. 
