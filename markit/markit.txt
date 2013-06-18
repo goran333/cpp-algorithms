@@ -1,0 +1,74 @@
+--- OOP ---
+
+#include <vector>
+#include <numeric>
+
+class AverageNumber
+{
+public:
+   AverageNumber(const std::vector<double>& inValues): _Values(inValues) {}
+   AverageNumber(const AverageNumber& other)
+   {
+      _Values = other.GetCollection();
+   }
+   virtual ~AverageNumber() {}
+
+   void Insert(const double& inValue)
+   {
+      _Values.push_back(inValue);
+   }
+
+   virtual double GetAverage() const
+   {
+      double sum = std::accumulate(_Values.begin(), _Values.end(), 0.0);
+      return (sum/_Values.size());
+   }
+
+   void GetMinMax(double &Min, double &Max) const
+   {
+      Max = *std::max_element(_Values.begin(), _Values.end());
+      Min = *std::min_element(_Values.begin(), _Values.end()); 
+   }
+
+   const std::vector<double>& GetCollection() const
+   {
+      return _Values;
+   }
+
+protected:
+   std::vector<double> _Values;
+};
+
+class DerivedNumber : public AverageNumber
+{
+public:
+   virtual double GetAverage() const
+   {
+      std::vector<double>::const_iterator it = _Values.begin();
+      double sum = 0.0;
+      size_t count = 0;
+
+      while(it != _Values.end())
+      {
+	 if(*it >= 0.0)
+	 {
+	    sum += *it;
+	    ++count;
+	 }
+      }
+      return (sum/count);
+   }
+};
+
+
+--- SQL ---  
+
+1. SELECT Movies.Title FROM Movies AS M, ActorRoles AS AR WHERE AR.MovieID = M.MovieID AND AR.ActorID = (SELECT ActorID FROM Actors WHERE NAME = "Harrison Ford")
+2. ???
+
+--- XPath ---
+/Report/Envelope/Headline
+/Report/Toys/Toy/@Name
+/Report/Toys/Toy[@Name = 'Books'] 
+
+
