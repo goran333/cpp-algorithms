@@ -8,7 +8,7 @@
 class Job
 {
 public:
-   Job(unsigned int MaxSecsToSleep)
+   Job(const std::string& JobId, unsigned int MaxSecsToSleep):_JobId(JobId)
    {
       //TODO: for C++11 use new APIs from <random>
       _SecsToSleep = (std::rand() % MaxSecsToSleep) + 1;
@@ -16,11 +16,12 @@ public:
 
    void DoWork() const
    {
-      std::cout << "sleeping for " << _SecsToSleep << " secs\n";
+      std::cout << "Job " << _JobId << " will take " << _SecsToSleep << " secs ...\n";
       boost::this_thread::sleep(boost::posix_time::seconds(_SecsToSleep));
-      std::cout << "Done sleeping\n";
+      std::cout << "Job " << _JobId << " completed!\n";
    }
 
 private:
    unsigned int _SecsToSleep;
+   std::string _JobId;
 };
