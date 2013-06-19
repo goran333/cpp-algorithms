@@ -1,9 +1,9 @@
 OBJ_DIR = obj
 BIN_DIR = bin
-TARGET = my_atoi
-CC=gcc
+TARGET = threadpool
+CC=g++
 CFLAGS=-Wall -g -ggdb	
-LFLAGS=
+LFLAGS=-lboost_system -lboost_date_time -lboost_thread
 INCLUDES= -I. -Isrc/
 VPATH= . src/
 
@@ -16,12 +16,13 @@ help:
 	@echo "| make clean           - Cleans everything" 
 	@echo "+-------------------------------------------------------------------------+"
 
-$(OBJ_DIR)/%.o: %.c 
+$(OBJ_DIR)/%.o: %.cpp
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 OBJECTS_TO_BUILD += \
-	$(OBJ_DIR)/my_atoi.o \
-	$(OBJ_DIR)/main.o \
+	$(OBJ_DIR)/Main.o \
+	$(OBJ_DIR)/ThreadPool.o \
+	$(OBJ_DIR)/WorkerThread.o
 
 create_build_dirs:
 	mkdir -p obj
