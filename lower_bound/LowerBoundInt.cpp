@@ -10,7 +10,7 @@
    boost::posix_time::ptime end(boost::posix_time::microsec_clock::local_time()); \
    std::cout << __FUNCTION__ << " took " << (end - start).total_milliseconds() << " ms\n"
 
-static const unsigned int N = 1000000; 
+static const unsigned int N = 100000; 
 typedef std::vector<int> TRecordVec;
 
 static void SetUnionMorV0(const TRecordVec& a1,
@@ -24,7 +24,7 @@ static void SetUnionMorV0(const TRecordVec& a1,
 		  a2.begin(),
 		  a2.end(),
 		  std::back_inserter(a));
-   std::cout << __FUNCTION__ << "Result size " << a.size() << '\n';
+   std::cout << __FUNCTION__ << " Result size " << a.size() << '\n';
    END_MARK;
 }
 
@@ -114,6 +114,52 @@ static void SetUnionMorV2(const TRecordVec& a1,
    END_MARK;
 }
 
+static void SetUnionMorV3(const TRecordVec& a1,
+			  const TRecordVec& a2,
+			  TRecordVec& a)
+{
+   START_MARK;
+
+   size_t first1(0);
+   const size_t last1(a1.size());
+   size_t first2(0);
+   const size_t last2(a2.size());
+   a.reserve(last1 + last2);
+
+   while (true)
+   {
+      if (first1==last1)
+      {
+	 a.insert(a.end(), a2.begin() + first2, a2.end());
+	 break;
+      }
+      if (first2==last2)
+      {
+	 a.insert(a.end(), a1.begin() + first1, a1.end());
+	 break;
+      }
+      if (a1[first1] < a2[first2])
+      {
+	 a.push_back(a1[first1]);
+	 ++first1;
+      }
+      else if (a2[first2] < a1[first1])
+      {
+	 a.push_back(a2[first2]);
+	 ++first2;
+      }
+      else 
+      {
+	 a.push_back(a1[first1]);
+	 ++first1;
+	 ++first2;
+      }
+   }
+
+   std::cout << __FUNCTION__ << " Result size " << a.size() << '\n';
+   END_MARK;
+}
+
 static void InitList(TRecordVec& a_list,
 		     const unsigned int a_n)
 {
@@ -143,10 +189,13 @@ int main(int argc, char **argv)
 
    TRecordVec l_list1, l_list2;
    //srand(time(NULL));
-   InitList(l_list1, n);
-   InitList(l_list2, 1000);
+   //InitList(l_list1, n);
+   InitList(l_list1, 10000);
+   InitList(l_list2, n);
+   //InitList(l_list2, 10000);
 
    TRecordVec l_result0, l_result1, l_result2, l_result3;
+   SetUnionMorV3(l_list1, l_list2, l_result3);
    SetUnionMorV2(l_list1, l_list2, l_result2);
    SetUnionMorV1(l_list1, l_list2, l_result1);
    SetUnionMorV0(l_list1, l_list2, l_result0);
