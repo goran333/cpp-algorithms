@@ -57,26 +57,36 @@ void ThreadPool::ThreadDoneCb(const string& Id,
    cout << "*** COMPLETE *** Thread " << Id << ", completed "
         << JobsDone << " of " << NoOfJobs << " jobs\n";
 
+   //clear thread's data 
+   _ThreadsJobDoneMap.erase(_ThreadsJobDoneMap.find(this_thread::get_id()));
+   map<ptime, shared_ptr<boost::thread> >::iterator it =  _ThreadsMap.begin();
+   while(_ThreadsMap.end() != it)
+   {
+      if(this_thread::get_id() == it->second->get_id())
+      {
+	 _ThreadsMap.erase(it);
+	 break;
+      }
+      ++it;
+   }
+
    if(!_ThreadsMap.empty())
    {
       shared_ptr<thread> OldestThread = _ThreadsMap.begin()->second;
-      if(this_thread::get_id() != OldestThread->get_id())
+      map<thread::id, unsigned int>::iterator it = _ThreadsJobDoneMap.find(OldestThread->get_id());
+      if(_ThreadsJobDoneMap.end() != it)
       {
-         map<thread::id, unsigned int>::iterator it = _ThreadsJobDoneMap.find(OldestThread->get_id());
-         if(_ThreadsJobDoneMap.end() != it)
-         {
-            if(it->second > 1)
-            {
-               OldestThread->interrupt();
-               OldestThread->join();
-            }
-         }
+	 if(it->second > 1)
+	 {
+	    OldestThread->interrupt();
+	    OldestThread->join();
+	    _ThreadsMap.erase(_ThreadsMap.begin());
+	 }
       }
-      _ThreadsMap.erase(_ThreadsMap.begin());
    }
 }
 
-void ThreadPool::WorkerFn(const string& ThreadId, 
+void ThreadPool::WorkerFn(const string& ThreadId,
                           unsigned int NoOfJobs)
 {
    try
@@ -100,8 +110,9 @@ void ThreadPool::WorkerFn(const string& ThreadId,
 void ThreadPool::CreateThread(const string& ThreadId,
                               const unsigned int NoOfJobs)
 {
-   _ThreadsMap.insert(make_pair(microsec_clock::universal_time(), 
-                                new thread(bind(&ThreadPool::WorkerFn, this, ThreadId, NoOfJobs))));
+   ptime t(microsec_clock::universal_time());
+  _ThreadsMap.insert(make_pair(t,
+			       new thread(bind(&ThreadPool::WorkerFn, this, ThreadId, NoOfJobs))));
 }
 
 void ThreadPool::DistributeWork()

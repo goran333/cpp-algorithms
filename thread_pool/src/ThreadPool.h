@@ -20,7 +20,6 @@ private:
    unsigned int _MaxSecs;
    unsigned int _JobsDone;
 
-   std::vector<boost::thread> _Threads;
    std::map<boost::thread::id, unsigned int> _ThreadsJobDoneMap;
    std::map<boost::posix_time::ptime, boost::shared_ptr<boost::thread> > _ThreadsMap;
    boost::barrier _DoneBarrier;
@@ -35,7 +34,7 @@ private:
                      unsigned int JobsDone,
                      unsigned int NoOfJobs);
    void ThreadInterruptedCb(const std::string& Id);
-   void WorkerFn(const std::string& ThreadId, 
+   void WorkerFn(const std::string& ThreadId,
                  unsigned int NoOfJobs);
    void CreateThread(const std::string& ThreadId,
                      const unsigned int NoOfJobs);
