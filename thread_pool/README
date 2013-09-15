@@ -1,0 +1,7 @@
+A simple implementation of a worker thread pool. 
+- Creates 'n' threads and uniformly distributes 'X' jobs across them.
+- When a thread completes, replace oldest thread in pool and reschedule pending jobs from oldest thread on 2 new threads. 
+- This implementation guarantees that at any given time, there will be max 'n' threads running.
+
+Future/TODOs
+- Use a better randomization technique from C++11 <random> instead of rand()

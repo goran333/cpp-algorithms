@@ -1,152 +1,150 @@
-#include <boost/thread.hpp>
-#include <boost/thread/barrier.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/bind.hpp>
 #include "ThreadPool.h"
-#include "Job.h"
-
+ #include "WorkerThread.h"
+#include <iostream>
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
 using namespace boost;
 using namespace boost::posix_time;
 
-void ThreadPool::JobDoneCb(const string& Id,
-                           unsigned int JobsDone,
-                           unsigned int NoOfJobs)
+void ThreadPool::_StopOldestValidThread()
 {
-   boost::unique_lock<boost::mutex> lock(_JobLock);
-
-   cout << "Thread " << Id << ", completed "
-        << JobsDone << " of " << NoOfJobs << " jobs\n";
-
-   _ThreadsJobDoneMap[this_thread::get_id()] = JobsDone;
-   
-   ++_JobsDone;
-   if(_JobsDone == _TotalJobs)
+   if(!_ThreadsMap.empty())
    {
-      cout << "All jobs done ...\n";
-      _DoneBarrier.wait();
+      //first element is always the oldest thread
+      ThreadMapType::iterator it = _ThreadsMap.begin();
+      while(_ThreadsMap.end() != it)
+      {
+         if(it->second->GetJobsRemaining() > 1)
+         {
+            it->second->StopAfterCurrentJob();
+            break;
+         }
+         ++it;
+      }
    }
 }
 
-void ThreadPool::ThreadInterruptedCb(const string& Id)
+void ThreadPool::_CleanupThreadResources(const string& ThreadId)
 {
-   unique_lock<mutex> lock(_ThreadInterruptedLock);
-
-   cout << "Thread " << Id << " interrupted!\n";
-
-   unsigned int JobsLeft = 1;
-
-   if(JobsLeft > 1)
+   //TODO: find a more efficient way to lookup than O(N)
+   if(!_ThreadsMap.empty())
    {
-      CreateThread(lexical_cast<string>(Id + ".1"), JobsLeft/2);
-      CreateThread(lexical_cast<string>(Id + ".2"), JobsLeft/2 + (JobsLeft % 2));
-   }
-   else
-   {
-      CreateThread(lexical_cast<string>(Id + ".1"), JobsLeft);
+      ThreadMapType::iterator it = _ThreadsMap.begin();
+      while(_ThreadsMap.end() != it)
+      {
+         if(ThreadId == it->second->GetId())
+         {
+            _LastCleanedThread = it->second;
+            _ThreadsMap.erase(it);
+            break;
+         }
+         ++it;
+      }
    }
 }
 
-void ThreadPool::ThreadDoneCb(const string& Id,
-                              unsigned int JobsDone,
-                              unsigned int NoOfJobs)
+void ThreadPool::_ThreadDoneCb(const string& Id,
+                               size_t JobsDone,
+                               size_t NoOfJobs,
+                               bool StoppedByUser)
 {
    unique_lock<mutex> lock(_ThreadLock);
 
    cout << "*** COMPLETE *** Thread " << Id << ", completed "
-        << JobsDone << " of " << NoOfJobs << " jobs\n";
+        << JobsDone << " of " << NoOfJobs << " jobs, user stopped = " 
+        << StoppedByUser << "\n";
 
-   //clear thread's data 
-   _ThreadsJobDoneMap.erase(_ThreadsJobDoneMap.find(this_thread::get_id()));
-   map<ptime, shared_ptr<boost::thread> >::iterator it =  _ThreadsMap.begin();
-   while(_ThreadsMap.end() != it)
+   //cleanup resources associated with this thread
+   _CleanupThreadResources(Id);
+
+   if(true == StoppedByUser)
    {
-      if(this_thread::get_id() == it->second->get_id())
-      {
-	 _ThreadsMap.erase(it);
-	 break;
-      }
-      ++it;
-   }
-
-   if(!_ThreadsMap.empty())
-   {
-      shared_ptr<thread> OldestThread = _ThreadsMap.begin()->second;
-      map<thread::id, unsigned int>::iterator it = _ThreadsJobDoneMap.find(OldestThread->get_id());
-      if(_ThreadsJobDoneMap.end() != it)
-      {
-	 if(it->second > 1)
-	 {
-	    OldestThread->interrupt();
-	    OldestThread->join();
-	    _ThreadsMap.erase(_ThreadsMap.begin());
-	 }
-      }
-   }
-}
-
-void ThreadPool::WorkerFn(const string& ThreadId,
-                          unsigned int NoOfJobs)
-{
-   try
-   {
-      unsigned int count = 0;
-      for(unsigned int i = 0; i < NoOfJobs; ++i)
-      {
-         const string JobId(ThreadId + "." + lexical_cast<string>(i));
-         Job(JobId, _MaxSecs).DoWork();
-         ++count;
-         JobDoneCb(ThreadId, count, NoOfJobs);
-      }
-      ThreadDoneCb(ThreadId, count, NoOfJobs);
-   }
-   catch(boost::thread_interrupted const& )
-   {
-      ThreadInterruptedCb(ThreadId);
-   }
-}
-
-void ThreadPool::CreateThread(const string& ThreadId,
-                              const unsigned int NoOfJobs)
-{
-   ptime t(microsec_clock::universal_time());
-  _ThreadsMap.insert(make_pair(t,
-			       new thread(bind(&ThreadPool::WorkerFn, this, ThreadId, NoOfJobs))));
-}
-
-void ThreadPool::DistributeWork()
-{
-   unsigned int Remainder = _TotalJobs % _NoOfThreads;
-   unsigned int NoOfJobsPerThread = _TotalJobs/_NoOfThreads;
-
-   if(0 == Remainder)
-   {
-      for(unsigned int i = 0; i < _NoOfThreads; ++i)
-      {
-         CreateThread(lexical_cast<string>(i), NoOfJobsPerThread);
-      }
+      //need to distribute remaning jobs on 2 new threads
+      _DistributeWork(NoOfJobs - JobsDone, 2);
    }
    else
    {
-      //todo: handle this case
+      //thread completed all its jobs, stop oldest thread which has pending jobs
+      _StopOldestValidThread();
+   }
+
+   //Are all the jobs completed?
+   _JobsDone += JobsDone;
+   if(_JobsDone >= _TotalJobs)
+   {
+      cout << "ALL DONE: Completed jobs " << _JobsDone << " of " << _TotalJobs << "\n";
+      _DoneBarrier.wait();
    }
 }
 
-ThreadPool::ThreadPool(unsigned int NoOfThreads, 
-                       unsigned int NoOfTotalJobs,
-                       unsigned int MaxSecsPerJob):
-   _NoOfThreads(NoOfThreads),
-   _TotalJobs(NoOfTotalJobs),
-   _MaxSecs(MaxSecsPerJob),
-   _JobsDone(0),
-   _DoneBarrier(2)
+void ThreadPool::_CreateThread(const string& ThreadId,
+                               size_t NoOfJobs)
 {
+   //store the created thread with its creation time as key so that 
+   //oldest threads are always on top of the map
+   _ThreadsMap.insert(make_pair(microsec_clock::universal_time(),
+                                new WorkerThread(ThreadId, NoOfJobs, _MaxSecs, 
+                                                 bind(&ThreadPool::_ThreadDoneCb, this, _1, _2, _3, _4))));
 }
 
-void ThreadPool::Simulate()
+void ThreadPool::_DistributeWork(size_t TotalJobs,
+                                 size_t NoOfThreads)
+
 {
-   srand(time(0)); //initialize seed
-   DistributeWork();
+   static size_t _ThreadIdSeed = 1; //monotonically increasing thread ids
+ 
+   size_t NoOfJobsPerThread = 0;
+   size_t Remainder = 0;
+
+   if((0 == TotalJobs) || (0 == NoOfThreads))
+   {
+      //nothing to do
+      return;
+   }
+   else if(1 == NoOfThreads)
+   {
+      //schedule all jobs on 1 thread
+      NoOfJobsPerThread = TotalJobs;
+   }
+   else if(TotalJobs <= NoOfThreads)
+   {
+      //schedule 1 job per thread and create minimal number of threads
+      NoOfJobsPerThread = 1;
+      NoOfThreads = TotalJobs;
+   }
+   else
+   {
+      //"normal" case, figure out no of jobs per thread
+      Remainder = TotalJobs % NoOfThreads;
+      NoOfJobsPerThread = TotalJobs/NoOfThreads;
+   }
+
+   //schedule perfectly divisible jobs on n-1 threads
+   size_t i = 0;
+   for(i = 0; i < NoOfThreads - 1; ++i)
+   {
+      _CreateThread(lexical_cast<string>(_ThreadIdSeed + i), NoOfJobsPerThread);
+   }
+
+   //schedule remaining jobs on last thread
+   _CreateThread(lexical_cast<string>(_ThreadIdSeed + i), NoOfJobsPerThread + Remainder);
+
+   //increment counter to guarantee a unique thread id on next call
+   _ThreadIdSeed += NoOfThreads;
+}
+
+void ThreadPool::DoWork()
+{
+   //initialize seed
+   srand(time(0));
+
+   //distribute work among threads
+   _DistributeWork(_TotalJobs, _NoOfThreads);
+
+   //wait for all work to be completed 
    _DoneBarrier.wait();
+
+   //wait for last thread to finish
+   _LastCleanedThread->Join();
 }

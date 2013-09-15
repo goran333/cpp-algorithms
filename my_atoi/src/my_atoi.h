@@ -19,7 +19,8 @@ extern "C" {
 #define MY_ATOI_FAILURE (INT_MAX)
 
 /*!
- * \brief         Convert an input string to an integer
+ * \brief         Convert an input string to an integer (string MUST be in 
+ *                decimal format).
  * \param[in]     str - input string (MUST be NULL-terminated)
  *
  * \return        Returns #MY_ATOI_FAILURE on failure. On success, this 

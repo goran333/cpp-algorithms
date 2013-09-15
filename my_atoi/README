@@ -1,0 +1,7 @@
+Implementation of a string to integer conversion API.
+- Only supports decimal number strings. 
+
+Future/TODOs
+- Handle leading whitespace in string
+- Handle trailing non-numeric characters in string 
+- Handle different number formats, e.g. hex, octal, etc.
