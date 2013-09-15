@@ -3,8 +3,8 @@ BIN_DIR = bin
 TARGET = threadpool
 CC=g++
 CFLAGS=-Wall -g -ggdb	
-LFLAGS=-lboost_system -lboost_date_time -lboost_thread
-INCLUDES= -I. -Isrc/
+LFLAGS=-L /usr/local/lib -lboost_system -lboost_date_time -lboost_thread
+INCLUDES= -I/usr/local/include -I. -Isrc/
 VPATH= . src/
 
 default: help
