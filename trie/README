@@ -1,0 +1,8 @@
+Implement a simple trie structure.
+
+1 basic string trie (each trie node represents a character)
+2 simple unsigned number trie at different levels of precision
+3 simple signed number trie at different levels of precision
+4 64 bit versions of 2 & 3
+5 32 bit float
+6 64 bit float
