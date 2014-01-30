@@ -13,9 +13,10 @@ public:
     int FindCounts(const uint32_t a_val,
                    const NumberOperator a_oper);
 
-    int FindCountsNumericRange(const uint32_t a_start,
-                               const uint32_t a_end,
-                               const bool a_inclusive = false);
+    int FindCountsRange(const uint32_t a_start,
+                        const uint32_t a_end,
+                        const bool a_startInclusive = true,
+                        const bool a_endInclusive = true);
 
 private:
     class CUintTrieNode;

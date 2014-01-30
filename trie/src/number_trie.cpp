@@ -6,7 +6,7 @@
 #include <map>
 
 struct CUintTrie::CUintTrieNode
-{ //todo
+{
     CUintTrieNode(): m_count(0), m_zeroCount(0) {}
     ~CUintTrieNode();
 
@@ -282,9 +282,23 @@ int CUintTrie::FindCounts(const uint32_t a_val,
     return l_ret;
 }
 
-int CUintTrie::FindCountsNumericRange(const uint32_t a_start,
-                                      const uint32_t a_end,
-                                      const bool a_inclusive)
+int CUintTrie::FindCountsRange(const uint32_t a_start,
+                               const uint32_t a_end,
+                               const bool a_startInclusive,
+                               const bool a_endInclusive)
 {
+    if (a_start >= a_end)
+        return -1;
+
+    int l_greater = m_root->FindCountsGreaterThan(a_start, a_startInclusive);
+    int l_less = m_root->FindCountsLessThan(a_end, a_endInclusive);
+
+    std::cout << "Greater" << (a_startInclusive? "Eq": "")
+              << " than " << a_start << " = " << l_greater << '\n'
+              << "Less" << (a_endInclusive? "Eq": "")
+              << " than " << a_end << " = " << l_less << '\n';
+
+    // todo: how to find the correct count for a range?
+
     return 0;
 }

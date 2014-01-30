@@ -132,6 +132,9 @@ int main()
         assert(1 == l_trie.FindCounts(0xFFFFFFFF, GTE));
         assert(7 == l_trie.FindCounts(0xFFFFFFFF, LT));
         assert(8 == l_trie.FindCounts(0xFFFFFFFF, LTE));
+
+        l_trie.FindCountsRange(0, 101);
+        l_trie.FindCountsRange(0, 0xFFFFFFFF);
     }
 
     return 0;
