@@ -18,21 +18,22 @@ struct CStringTrie::CStringTrieNode
 
 CStringTrie::CStringTrieNode::~CStringTrieNode()
 {
-    TNodes::const_iterator l_it(m_children.begin());
+    TNodes::iterator l_it(m_children.begin());
     for (; m_children.end() != l_it; ++l_it)
     {
-        std::cout << "Deleting node for char = " << l_it->first << '\n';
+        std::cout << "Deleting node for key = " << l_it->first << '\n';
         delete l_it->second;
+        l_it->second = NULL;
     }
     m_children.clear();
 }
 
 void CStringTrie::CStringTrieNode::Insert(const std::string& a_val)
 {
-    std::cout << "Inserting String = " << a_val << '\n';
-
     if (a_val.empty())
         return;
+
+    std::cout << "Inserting String = " << a_val << '\n';
 
     CStringTrieNode* l_child(NULL);
 
